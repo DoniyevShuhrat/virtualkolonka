@@ -1,8 +1,11 @@
 import serial
 import threading
 
-portA = serial.Serial('COM1', 9600, timeout=0.1)
-portB = serial.Serial('COM16', 9600, timeout=0.1)
+# portA = serial.Serial('COM4', 9600, timeout=0.1)
+# portB = serial.Serial('COM5', 9600, timeout=0.1)
+
+portA = serial.Serial('COM5', 9600, timeout=0.1)
+portB = serial.Serial('COM7', 9600, timeout=0.1)
 
 def forward(src, dst):
     while True:

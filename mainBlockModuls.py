@@ -6,6 +6,8 @@ from PyQt6.QtWidgets import (
     QTextEdit, QLineEdit, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox
 )
 
+getPressureData = "01 30 31 02 52 50 03 02"
+
 
 class ComPortApp(QMainWindow):
     def __init__(self):
@@ -45,12 +47,19 @@ class ComPortApp(QMainWindow):
         formSetup = QFormLayout()
         self.gasPrice = QLineEdit("2000")
         self.stepVolume = QLineEdit("0.01")
+
+        hPressureLayout = QHBoxLayout()
         self.gasPressure = QLineEdit("200")
+        self.getGasPressure = QPushButton("getPressure")
+        hPressureLayout.addWidget(self.gasPressure)
+        hPressureLayout.addWidget(self.getGasPressure)
+        self.getGasPressure.clicked.connect(self.getGasPressureFunc)
+
         self.totalVolume = QLineEdit("1234560.79")
 
         formSetup.addRow("Цена газа:", self.gasPrice)
         formSetup.addRow("Приращение (м3):", self.stepVolume)
-        formSetup.addRow("Давление (кг/см2):", self.gasPressure)
+        formSetup.addRow("Давление (кг/см2):", hPressureLayout)
         formSetup.addRow("Всего (м3):", self.totalVolume)
 
         groupSetup.setLayout(formSetup)
@@ -183,14 +192,48 @@ class ComPortApp(QMainWindow):
     def is_connected(self):
         return self.serial_port is not None and self.serial_port.is_open
 
-    def send_data(self):
+    def getGasPressureFunc(self):
+        print("send me Pressure")
+        if self.serial_port and self.serial_port.isOpen():
+            hex_str = getPressureData.strip()
+            try:
+                self.log.append(f"Send Data> {hex_str}")
+                data = bytes.fromhex(hex_str)
+                self.serial_port.write(data)
+
+                self.serialReader()
+
+            except Exception as e:
+                self.log.append(f"⚠ Hex format xato. {self.debugText.text()}")
+        else:
+            self.log.append("Сначала подключите колонку!")
+
+    def serialReader(self):
+        try:
+            if self.serial_port.in_waiting > 0:
+                response = self.serial_port.read(self.serial_port.in_waiting)
+                print(f"response: {response}")
+                hex_resp = response.hex(" ").upper()
+                print(f"hex_resp: {hex_resp}")
+
+                self.log.append(f"< {hex_resp}")
+                self.decoderProtocol(response)
+
+            else:
+                self.log.append("Response not received")
+
+        except Exception as e:
+            self.log.append(f"⚠ Hex format xato. {self.debugText.text()}: {e}")
+
+    def send_data(self, ):
         print("Send data")
         if self.serial_port and self.serial_port.isOpen():
             hex_str = self.debugText.text().strip()
             try:
+                self.log.append(f"Data Send > {hex_str}")
                 data = bytes.fromhex(hex_str)
                 self.serial_port.write(data)
-                self.log.append(f"Data sent > {hex_str}")
+                self.log.append(f"Data Rec > {data}")
             except Exception as e:
                 self.log.append(f"⚠ Hex format xato. {self.debugText.text()}")
         else:
@@ -227,6 +270,14 @@ class ComPortApp(QMainWindow):
             self.log.append(f"Ошибка подключения: {e}")
             # self.log.append(f"Error: {e}")
             self.connectionStatus = False
+
+    def decoderProtocol(self, recData):
+        print("decode protocol")
+        try:
+            for index, data in enumerate(recData):
+                print(f"{index}) Decode: {data}")
+        except Exception as e:
+            self.log.append(f"⚠ Docode error: {self.debugText.text()}: {e}")
 
 
 if __name__ == "__main__":
